@@ -1,0 +1,9 @@
+---
+
+- steps
+  - type: role
+    name: demo
+#  - type: role
+#    name: mysql
+#  - type: role
+#    name: apache

@@ -1,0 +1,17 @@
+---
+
+- Logging[log]:
+    message: "This the PWD Env Var {{{ Facts::Runtime::envVar::PWD }}}"
+    guess: true
+
+- Logging[log]:
+    message: "This the USERNAME Env Var {{{ Facts::Runtime::envVar::USERNAME }}}"
+    guess: true
+
+- Logging[log]:
+    message: "This the HOME Env Var {{{ Facts::Runtime::envVar::HOME }}}"
+    guess: true
+
+- Logging[log]:
+    message: "This the OLDPWD Env Var {{{ Facts::Runtime::envVar::OLDPWD }}}"
+    guess: true
