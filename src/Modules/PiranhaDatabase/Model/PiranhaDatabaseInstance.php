@@ -32,12 +32,10 @@ class PiranhaDatabaseInstance extends BasePiranhaDatabaseAllOS {
         $this->getInstanceName() ;
         $this->getInstanceDescription() ;
         $this->getImageID() ;
+        $this->getSizeSlug() ;
         $this->getInternetEnabled() ;
         $this->getEgressEnabled() ;
         $this->getPrivateNetworks() ;
-        $this->getKeypairID() ;
-        $this->getDatabaseEngine() ;
-        $this->getUserData() ;
 
         /*
          *             $vm_name = SharedValidationHelper::validate('instance_name', false, 'string', 'Instance Name') ;
@@ -62,16 +60,13 @@ class PiranhaDatabaseInstance extends BasePiranhaDatabaseAllOS {
         $p_api_vars['api_uri'] = '/api/database/instance/create';
         $p_api_vars['region'] = 'dc' ;
 
-        $p_api_vars['instance_name'] = $this->params["instance-name"] ;
-        $p_api_vars['instance_description'] = $this->params["instance-description"] ;
+        $p_api_vars['instance_name'] = $this->params["name"] ;
+        $p_api_vars['vm_description'] = $this->params["description"] ;
         $p_api_vars['size_slug'] = $this->params["size-slug"] ;
         $p_api_vars['image_id'] = $this->params["image-id"] ;
         $p_api_vars['internet_enabled'] = $this->params["internet-enabled"] ;
         $p_api_vars['egress_enabled'] = $this->params["egress-enabled"] ;
         $p_api_vars['private_networks'] = $this->params["private-networks"] ;
-        $p_api_vars['keypair'] = $this->params["keypair"] ;
-        $p_api_vars['database_engine'] = $this->params["database-engine"] ;
-        $p_api_vars['userdata'] = $this->params["user-data"] ;
 
         echo "Requesting Instance...\n" ;
 
@@ -94,8 +89,6 @@ class PiranhaDatabaseInstance extends BasePiranhaDatabaseAllOS {
         }
 
         echo "Modification ID is ".$mod_id."\n" ;
-
-
 
         $wait_period = 5 ;
 
@@ -138,14 +131,14 @@ class PiranhaDatabaseInstance extends BasePiranhaDatabaseAllOS {
         $logging->log("Performing Instance Deletion", $this->getModuleName());
 
         $p_api_vars['api_uri'] = '/api/database/instance/delete';
-        $p_api_vars['id'] = $this->params["instance-id"] ;
+        $p_api_vars['instance_id'] = $this->params["id"] ;
         $result = $this->performRequest($p_api_vars);
 
-        echo "Before Result\n\n" ;
-
-        var_dump($result);
-
-        echo "After Result\n\n" ;
+//        echo "Before Result\n\n" ;
+//
+//        var_dump($result);
+//
+//        echo "After Result\n\n" ;
 
         return $result;
 
@@ -161,21 +154,24 @@ class PiranhaDatabaseInstance extends BasePiranhaDatabaseAllOS {
     }
 
     protected function getInstanceID() {
-        if (isset($this->params["instance-id"])) { return ; }
+        if (isset($this->params["id"])) { return ; }
         $question = 'Enter Instance ID: ';
-        $this->params["instance-id"]= self::askForInput($question, true);
+        $this->params["id"]= self::askForInput($question, true);
     }
 
     protected function getInstanceName() {
-        if (isset($this->params["instance-name"])) { return ; }
+        if (isset($this->params["name"])) { return ; }
         $question = 'Enter Instance Name';
-        $this->params["instance-name"] = self::askForInput($question, true);
+        $this->params["name"] = self::askForInput($question, true);
     }
 
     protected function getInstanceDescription() {
-        if (isset($this->params["instance-description"])) { return ; }
+        if (isset($this->params["description"])) { return ; }
+        if (isset($this->params["guess"])) {
+            $this->params["description"] = '' ;
+            return ; }
         $question = 'Instance Description';
-        $this->params["instance-description"] = self::askForInput($question, true);
+        $this->params["description"] = self::askForInput($question, true);
     }
 
     protected function getImageID() {
@@ -184,9 +180,15 @@ class PiranhaDatabaseInstance extends BasePiranhaDatabaseAllOS {
         $this->params["image-id"] = self::askForInput($question, true);
     }
 
+    protected function getSizeSlug() {
+        if (isset($this->params["size-slug"])) { return ; }
+        $question = 'Size Slug';
+        $this->params["size-slug"] = self::askForInput($question, true);
+    }
+
     protected function getInternetEnabled() {
         if (isset($this->params["internet-enabled"])) { return ; }
-        $question = 'Internet Enbaled?';
+        $question = 'Internet Enabled?';
         $this->params["internet-enabled"] = self::askForInput($question, true);
     }
 
@@ -202,22 +204,5 @@ class PiranhaDatabaseInstance extends BasePiranhaDatabaseAllOS {
         $this->params["private-networks"] = self::askForInput($question, true);
     }
 
-    protected function getKeypairID() {
-        if (isset($this->params["keypair"])) { return ; }
-        $question = 'Enter Keypair Name';
-        $this->params["keypair"] = self::askForInput($question, true);
-    }
-
-    protected function getDatabaseEngine() {
-        if (isset($this->params["database-engine"])) { return ; }
-        $question = 'Enter Database Engine';
-        $this->params["database-engine"] = self::askForInput($question, true);
-    }
-
-    protected function getUserData() {
-        if (isset($this->params["user-data"])) { return ; }
-        $question = 'Enter User Data';
-        $this->params["user-data"] = self::askForInput($question, true);
-    }
 
 }

@@ -14,7 +14,7 @@ class PiranhaDatabase extends Base {
         $action = $pageVars["route"]["action"];
 
 
-        if(in_array($action, array("create-instance", "instance-create", 'ensure-instance-exists'))) {
+        if (in_array($action, array("create-instance", "instance-create", 'ensure-instance-exists'))) {
             $thisModel = $this->getModelAndCheckDependencies(substr(get_class($this), 11), $pageVars, "Instance") ;
             if (is_array($thisModel)) { return $this->failDependencies($pageVars, $this->content, $thisModel) ; }
             $isDefaultAction = self::checkDefaultActions($pageVars, array(), $thisModel) ;
@@ -22,7 +22,8 @@ class PiranhaDatabase extends Base {
             $this->content["piranhaResult"] = $thisModel->askWhetherToCreateInstance();
             return array ("type"=>"view", "view"=>"PiranhaDatabaseAPI", "pageVars"=>$this->content);
         }
-        if(in_array($action, array("delete-record", 'ensure-record-empty'))) {
+
+        if (in_array($action, array("delete-instance", "instance-delete", 'ensure-instance-empty'))) {
             $thisModel = $this->getModelAndCheckDependencies(substr(get_class($this), 11), $pageVars, "Instance") ;
             if (is_array($thisModel)) { return $this->failDependencies($pageVars, $this->content, $thisModel) ; }
             $isDefaultAction = self::checkDefaultActions($pageVars, array(), $thisModel) ;

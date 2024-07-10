@@ -18,6 +18,7 @@ class PiranhaDatabaseInfo extends PTConfigureBase {
           "delete-health-check","create-health-check",
 //          'ensure-instance-exists', 'ensure-record-empty',
           'ensure-instance-exists', 'create-instance', 'instance-create',
+          'ensure-instance-empty', 'delete-instance', 'instance-delete',
           'delete-instance'
           ) ) );
     }
