@@ -4,6 +4,7 @@ Namespace Model;
 
 class PiranhaBaseLibs extends Base {
 
+    protected $profileName = null ;
     protected $accessKey ;
     protected $secretKey ;
     protected $region ;
@@ -11,15 +12,32 @@ class PiranhaBaseLibs extends Base {
     protected $piranhaClient ;
 
     protected function initialisePiranha() {
-        $this->accessKey = $this->askForPiranhaAccessKey();
-        $this->secretKey = $this->askForPiranhaSecretKey();
-        $this->region = $this->askForPiranhaRegion();
+        $profile_ask =  $this->askForPiranhaProfile() ;
+        $this->profileName = ($profile_ask === null ) ? null : $profile_ask ;
+        if (!is_null($this->profileName)) {
+            $this->setKeysFromProfile() ;
+        }
+        $this->accessKey = $this->askForPiranhaAccessKey() ;
+        $this->secretKey = $this->askForPiranhaSecretKey() ;
+        $this->region = $this->askForPiranhaRegion() ;
         $this->endpointUrl = $this->askForPiranhaEndpoint() ;
     }
 
     public function __construct($params) {
         parent::__construct($params);
     }
+
+    protected function askForPiranhaProfile(){
+        if (isset($this->params["piranha-profile"])) {
+            return $this->params["piranha-profile"] ;
+        }
+        if (isset($this->params["profile"])) {
+            $this->params["piranha-profile"] = $this->params["profile"] ;
+            return $this->params["piranha-profile"] ;
+        }
+        return null ;
+    }
+
 
     protected function askForPiranhaAccessKey(){
         if (isset($this->params["piranha-access-key"])) {
@@ -60,6 +78,10 @@ class PiranhaBaseLibs extends Base {
 
     protected function askForPiranhaRegion(){
         if (isset($this->params["piranha-region"])) { return $this->params["piranha-region"] ; }
+        if (isset($this->params["region"])) {
+            $this->params["piranha-region"] = $this->params["region"] ;
+            return $this->params["piranha-region"] ;
+        }
         $papyrusVar = \Model\AppConfig::getProjectVariable("piranha-region") ;
         if ($papyrusVar != null) {
             if ($this->params["guess"] == true) { return $papyrusVar ; }
@@ -116,6 +138,40 @@ class PiranhaBaseLibs extends Base {
         \Model\AppConfig::setProjectVariable("piranha-endpoint", $this->endpointUrl) ;
     }
 
+    protected function setKeysFromProfile() {
+        $profile_paths = [
+            getenv('HOME').'/.piranha/credentials',
+            getenv('HOME').'/.aws/credentials'
+        ] ;
+        # var_dump(getenv('HOME') );
+        foreach ($profile_paths as $profile_path) {
+            if (file_exists($profile_path)) {
+                $profiles = $this->getProfileArrayFromFile($profile_path) ;
+//                var_dump($profiles);
+                if (array_key_exists($this->profileName, $profiles ) ) {
+//                    echo "Profile $this->profileName found in $profile_path\n" ;
+                    $this->params["piranha-secret-key"] = $profiles[$this->profileName]['secret_key'] ;
+                    $this->params["piranha-access-key"] = $profiles[$this->profileName]['access_key'] ;
+                    break ;
+                }
+            }
+        }
+    }
+
+
+    protected function getProfileArrayFromFile($file_path) {
+        $file_data = file_get_contents($file_path) ;
+        $file_data_lines = explode("\n", $file_data);
+        $profiles = [];
+        for ($current_line=0; $current_line < count($file_data_lines); $current_line++) {
+            if (substr($file_data_lines[$current_line], 0, 1) === '[') {
+                $profile_name = substr($file_data_lines[$current_line], 1, strlen($file_data_lines[$current_line])-2); ;
+                $profiles[$profile_name]['access_key'] = str_replace('aws_access_key_id=', '', $file_data_lines[$current_line+1] );
+                $profiles[$profile_name]['secret_key'] = str_replace('aws_secret_access_key=', '', $file_data_lines[$current_line+2] );
+            }
+        }
+        return $profiles ;
+    }
 
     public function performRequest($request_vars) {
         $server_url = (isset($this->params["piranha-endpoint"])) ? $this->params["piranha-endpoint"] : 'https://api.piranha.sh' ;
@@ -125,6 +181,8 @@ class PiranhaBaseLibs extends Base {
         $post_data['key_id'] = $this->accessKey ;
         $post_data['secret_key'] = $this->secretKey ;
         $post_data['page'] = 'all' ;
+
+//        var_dump($post_data);
 
         $post_data = array_merge($request_vars, $post_data) ;
 
@@ -157,7 +215,7 @@ class PiranhaBaseLibs extends Base {
         }
         $find = '<title>Redirecting to http://api.piranha.sh/api/user/login</title>' ;
         if (strpos($curl_result, $find) !== false) {
-            $error_msg = 'Authenticaton Error';
+            $error_msg = 'Authentication Error';
             $logging->log("Request Failed - $error_msg",
                 $this->getModuleName(),
                 LOG_FAILURE_EXIT_CODE);

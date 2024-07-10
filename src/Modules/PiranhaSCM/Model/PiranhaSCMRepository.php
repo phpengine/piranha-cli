@@ -18,10 +18,7 @@ class PiranhaSCMRepository extends BasePiranhaSCMAllOS {
         return $this->performPiranhaSCMCreateRepository($params);
     }
 
-    public function askWhetherToCreateHealthCheck($params=null) {
 
-        return $this->performPiranhaSCMCreateHealthCheck($params);
-    }
     public function askWhetherToDeleteRepository($params=null) {
 
         return $this->performPiranhaSCMDeleteRepository($params);

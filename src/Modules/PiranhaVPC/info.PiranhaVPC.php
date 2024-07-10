@@ -31,13 +31,13 @@ class PiranhaVPCInfo extends PTConfigureBase {
 
     public function helpDefinition() {
        $help = <<<"HELPDATA"
-    This is an extension provided for Handling Piranha Simple Load Balancer Records.
+    This is an extension provided for Handling Piranha Private Networks.
 
-    PiranhaVPC, PiranhaVPC, piranha-vpc
+    vpc, PiranhaVPC, PiranhaVPC, piranha-vpc
 
         - list
         Will display data about your Piranha VPC Records
-        example: piranha PiranhaVPC list -yg --list-type=vpc,vpc-full
+        example: piranha vpc list -yg --list-type=vpc,vpc-full
 
 HELPDATA;
       return $help ;

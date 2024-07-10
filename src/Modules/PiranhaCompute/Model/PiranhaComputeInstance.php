@@ -2,7 +2,7 @@
 
 Namespace Model;
 
-class PiranhaDatabaseInstance extends BasePiranhaDatabaseAllOS {
+class PiranhaComputeInstance extends BasePiranhaComputeAllOS {
 
     // Compatibility
     public $os = array("any") ;

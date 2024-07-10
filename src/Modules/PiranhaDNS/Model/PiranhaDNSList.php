@@ -57,22 +57,21 @@ class PiranhaDNSList extends BasePiranhaDNSAllOS {
     public function getDataListFromPiranhaDNS($dataToList) {
         $list = [] ;
         try {
-            if(in_array($dataToList, array("Hosted-Zone", 'Domain', 'domain', 'Domains', 'domains','hosted-zones', 'zones'))) {
+            
+            if (in_array($dataToList, array("Hosted-Zone", 'Domain', 'domain', 'Domains', 'domains','hosted-zones', 'zones'))) {
                 $p_api_vars['api_uri'] = '/api/dns/domain/all';
                 $p_api_vars['page'] = 'all' ;
                 $list = $this->performRequest($p_api_vars);
             }
-            if(in_array($dataToList, array("Health-check", "HealthChecks", 'healthcheck', 'healthchecks'))) {
-//                $list = $this->piranhaClient->listHealthChecks();
-            }
-            if(in_array($dataToList, array("ResourceRecordSets", 'records', 'Records'))) {
+
+            if (in_array($dataToList, array("ResourceRecordSets", 'records', 'Records'))) {
                 $this->getHostedZoneId();
                 $list = $this->piranhaClient->listResourceRecordSets(array('HostedZoneId' =>   $this->params["hosted-zone-id"]));
-
                 $p_api_vars['api_uri'] = '/api/dns/domain/all';
                 $p_api_vars['page'] = 'all' ;
                 $list = $this->performRequest($p_api_vars);
             }
+
         } catch (\Exception $e) {
 //            var_dump($e->getMessage()) ;
             return array('error' => $e->getMessage());

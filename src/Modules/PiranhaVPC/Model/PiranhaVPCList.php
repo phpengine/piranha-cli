@@ -15,7 +15,6 @@ class PiranhaVPCList extends BasePiranhaVPCAllOS {
     public $modelGroup = array("Listing") ;
 
     public function askWhetherToListData($params=null) {
-
         return $this->performPiranhaVPCListData($params);
     }
 
@@ -37,6 +36,7 @@ class PiranhaVPCList extends BasePiranhaVPCAllOS {
         if (isset($this->params["list-type"])) {
             return $this->params["list-type"] ; }
         else if (isset($this->params["type"])) {
+            $this->params["list-type"] = $this->params["type"] ;
             return $this->params["type"] ; }
         $options = array("vpc");
         return self::askForArrayOption($question, $options, true);
@@ -55,7 +55,10 @@ class PiranhaVPCList extends BasePiranhaVPCAllOS {
             return array('error' => $e->getMessage());
 //            debug_print_backtrace() ;
         }
-        return array('data' => $list);
+        return array(
+            'data' => $list,
+            'type' => $this->params["list-type"]
+        );
     }
 
 }
