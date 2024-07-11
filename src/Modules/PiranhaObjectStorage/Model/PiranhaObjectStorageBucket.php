@@ -14,57 +14,57 @@ class PiranhaObjectStorageBucket extends BasePiranhaObjectStorageAllOS {
     // Model Group
     public $modelGroup = array("Bucket");
 
-    public function askWhetherToCreateRepository($params=null) {
-        return $this->performPiranhaObjectStorageCreateRepository($params);
+    public function askWhetherToCreateBucket($params=null) {
+        return $this->performPiranhaObjectStorageCreateBucket($params);
     }
 
 
-    public function askWhetherToDeleteRepository($params=null) {
+    public function askWhetherToDeleteBucket($params=null) {
 
-        return $this->performPiranhaObjectStorageDeleteRepository($params);
+        return $this->performPiranhaObjectStorageDeleteBucket($params);
     }
 
 
 
-    protected function performPiranhaObjectStorageCreateRepository($params=null){
+    protected function performPiranhaObjectStorageCreateBucket($params=null){
         if ($this->askForAddExecute() != true) { return false; }
         $this->initialisePiranha();
-        $this->getRepositoryName();
-        $this->getRepositoryDescription();
+        $this->getBucketName();
+        $this->getBucketDescription();
         $unique= md5(uniqid(rand(), true));
 
         try {
 
             $loggingFactory = new \Model\Logging();
             $logging = $loggingFactory->getModel($this->params);
-            $logging->log("Finding Repository {$this->params["repository-name"]}", $this->getModuleName());
+            $logging->log("Finding Bucket {$this->params["bucket-name"]}", $this->getModuleName());
 //
-            $repositoryExists = $this->doesRepositoryExist() ;
-            if ($repositoryExists !== false) {
+            $bucketExists = $this->doesBucketExist() ;
+            if ($bucketExists !== false) {
 
-                $logging->log("Found Existing Repository {$this->params["repository-name"]}", $this->getModuleName());
+                $logging->log("Found Existing Bucket {$this->params["bucket-name"]}", $this->getModuleName());
 
             } else {
 
-                $logging->log("Repository {$this->params["repository-name"]} Not Found, creating...", $this->getModuleName());
-                $p_api_vars['api_uri'] = '/api/scm/repository/create';
+                $logging->log("Bucket {$this->params["bucket-name"]} Not Found, creating...", $this->getModuleName());
+                $p_api_vars['api_uri'] = '/api/ss3/bucket/create';
                 $p_api_vars['region'] = 'dc' ;
-                $p_api_vars['repository_name'] = $this->params["repository-name"] ;
-                $p_api_vars['repository_description'] = $this->params["repository-description"] ;
+                $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
+                $p_api_vars['bucket_description'] = $this->params["bucket-description"] ;
                 $result = $this->performRequest($p_api_vars);
 
 //                var_dump($result);
 
                 $logging->log("Creation Status is : {$result['status']}", $this->getModuleName());
                 if ($result['status'] === 'OK') {
-                    $logging->log("Created Name is : {$result['repo']['name']}", $this->getModuleName());
+                    $logging->log("Created Name is : {$result['bucket']['ss3_bucket_name']}", $this->getModuleName());
                 }
-                $logging->log("Looking for created repository {$this->params["repository-name"]}", $this->getModuleName());
-                $repositoryExists = $this->doesRepositoryExist() ;
-                if ($repositoryExists === true) {
-                    $logging->log("Found Repository {$this->params["repository-name"]}, creation confirmed ", $this->getModuleName());
+                $logging->log("Looking for created bucket {$this->params["bucket-name"]}", $this->getModuleName());
+                $bucketExists = $this->doesBucketExist() ;
+                if ($bucketExists === true) {
+                    $logging->log("Found Bucket {$this->params["bucket-name"]}, creation confirmed ", $this->getModuleName());
                 } else {
-                    $logging->log("Unable to find Repository {$this->params["repository-name"]}, creation failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+                    $logging->log("Unable to find Bucket {$this->params["bucket-name"]}, creation failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
                 }
 
             }
@@ -73,19 +73,19 @@ class PiranhaObjectStorageBucket extends BasePiranhaObjectStorageAllOS {
             echo $e->getMessage();
         }
 
-        return $result ;
+        return true ;
 
     }
 
-    protected function doesRepositoryExist() {
-        $p_api_vars['api_uri'] = '/api/scm/repository/all';
+    protected function doesBucketExist() {
+        $p_api_vars['api_uri'] = '/api/ss3/bucket/all';
         $p_api_vars['page'] = 'all' ;
         $list = $this->performRequest($p_api_vars);
-//        var_dump('doesRepositoryExist list');
+//        var_dump('doesBucketExist list');
 //        var_dump($list);
         $found = false ;
-        foreach ($list['repositories'] as $repository) {
-            if ($repository['name'] === $this->params["repository-name"]) {
+        foreach ($list['buckets'] as $bucket) {
+            if ($bucket['name'] === $this->params["bucket-name"]) {
                 return true ;
             }
         }
@@ -94,10 +94,10 @@ class PiranhaObjectStorageBucket extends BasePiranhaObjectStorageAllOS {
 
 
 
-    protected function performPiranhaObjectStorageDeleteRepository($params=null){
+    protected function performPiranhaObjectStorageDeleteBucket($params=null){
         if ($this->askForDeleteExecute() != true) { return false; }
         $this->initialisePiranha();
-        $this->getRepositoryName();
+        $this->getBucketName();
         $unique= md5(uniqid(rand(), true));
         $result = null ;
         try{
@@ -105,31 +105,31 @@ class PiranhaObjectStorageBucket extends BasePiranhaObjectStorageAllOS {
             $loggingFactory = new \Model\Logging();
             $logging = $loggingFactory->getModel($this->params);
 
-            $repositoryExists = $this->doesRepositoryExist() ;
-            if ($repositoryExists === false) {
+            $bucketExists = $this->doesBucketExist() ;
+            if ($bucketExists === false) {
 
-                $logging->log("Repository {$this->params["repository-name"]} Not Found", $this->getModuleName());
+                $logging->log("Bucket {$this->params["bucket-name"]} Not Found", $this->getModuleName());
 
             } else {
 
-                $logging->log("Repository {$this->params["repository-name"]} Found, deleting...", $this->getModuleName());
-                $p_api_vars['api_uri'] = '/api/scm/repository/delete';
+                $logging->log("Bucket {$this->params["bucket-name"]} Found, deleting...", $this->getModuleName());
+                $p_api_vars['api_uri'] = '/api/ss3/bucket/delete';
                 $p_api_vars['region'] = 'dc' ;
-                $p_api_vars['repository_id'] = $this->params["repository-name"] ;
+                $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
                 $result = $this->performRequest($p_api_vars);
 
 //                var_dump($result);
 
                 $logging->log("Deletion Status is : {$result['status']}", $this->getModuleName());
                 if ($result['status'] === 'OK') {
-                    $logging->log("Deleted Name is : {$result['repository']}", $this->getModuleName());
+                    $logging->log("Deleted Name is : {$result['bucket']}", $this->getModuleName());
                 }
-                $logging->log("Looking for deleted repository {$this->params["repository-name"]}", $this->getModuleName());
-                $repositoryExists = $this->doesRepositoryExist() ;
-                if ($repositoryExists === false) {
-                    $logging->log("Repository {$this->params["repository-name"]} not found, deletion confirmed ", $this->getModuleName());
+                $logging->log("Looking for deleted bucket {$this->params["bucket-name"]}", $this->getModuleName());
+                $bucketExists = $this->doesBucketExist() ;
+                if ($bucketExists === false) {
+                    $logging->log("Bucket {$this->params["bucket-name"]} not found, deletion confirmed ", $this->getModuleName());
                 } else {
-                    $logging->log("Repository {$this->params["repository-name"]} exists, deletion failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+                    $logging->log("Bucket {$this->params["bucket-name"]} exists, deletion failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
                 }
 
             }
@@ -154,28 +154,28 @@ class PiranhaObjectStorageBucket extends BasePiranhaObjectStorageAllOS {
     }
 
     
-    protected function  getRepositoryName()
+    protected function  getBucketName()
     {
-        if (isset($this->params["repository-name"])) { return ; }
+        if (isset($this->params["bucket-name"])) { return ; }
         if (isset($this->params["name"])) {
-            $this->params["repository-name"] = $this->params["name"] ;
+            $this->params["bucket-name"] = $this->params["name"] ;
             return ;
         }
-        $question = 'Enter repository name: ';
-        $this->params["repository-name"]= self::askForInput($question, true);
+        $question = 'Enter bucket name: ';
+        $this->params["bucket-name"]= self::askForInput($question, true);
     }
 
-    protected function getRepositoryDescription() {
-        if (isset($this->params["repository-description"])) { return ; }
+    protected function getBucketDescription() {
+        if (isset($this->params["bucket-description"])) { return ; }
         if (isset($this->params["description"])) {
-            $this->params["repository-description"] = $this->params["description"] ;
+            $this->params["bucket-description"] = $this->params["description"] ;
             return ;
         }
         if (isset($this->params["guess"])) {
-            $this->params["repository-description"] = '' ;
+            $this->params["bucket-description"] = '' ;
             return ; }
-        $question = 'Enter an optional Repository Description';
-        $this->params["repository-description"] = self::askForInput($question, true);
+        $question = 'Enter an optional Bucket Description';
+        $this->params["bucket-description"] = self::askForInput($question, true);
     }
 
 

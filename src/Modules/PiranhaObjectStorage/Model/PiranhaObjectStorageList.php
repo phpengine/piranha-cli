@@ -39,38 +39,36 @@ class PiranhaObjectStorageList extends BasePiranhaObjectStorageAllOS {
         else if (isset($this->params["type"])) {
             $this->params["list-type"] = $this->params["type"] ;
             return $this->params["type"] ; }
-        $options = array('key', 'accesskey', 'user', 'group', 'role', 'policy');
+        $options = array('bucket', 'file', 'object');
         return self::askForArrayOption($question, $options, true);
     }
 
     public function getDataListFromPiranhaObjectStorage($dataToList) {
         $list = [] ;
         try {
-            if(in_array($dataToList, array('key', 'accesskey'))) {
-                $p_api_vars['api_uri'] = '/api/scm/repository/all';
+            if (in_array($dataToList, array('bucket', 'buckets'))) {
+                $p_api_vars['api_uri'] = '/api/ss3/bucket/all';
                 $p_api_vars['page'] = 'all' ;
                 $list = $this->performRequest($p_api_vars);
             }
-            if(in_array($dataToList, array('key', 'accesskey'))) {
-                $p_api_vars['api_uri'] = '/api/sam/user/all';
+            if (in_array($dataToList, array('file', 'files'))) {
+                $p_api_vars['api_uri'] = '/api/ss3/object/all';
                 $p_api_vars['page'] = 'all' ;
                 $list = $this->performRequest($p_api_vars);
             }
-            if(in_array($dataToList, array('group'))) {
-                $p_api_vars['api_uri'] = '/api/sam/group/all';
-                $p_api_vars['page'] = 'all' ;
-                $list = $this->performRequest($p_api_vars);
-            }
-            if(in_array($dataToList, array('role'))) {
-                $p_api_vars['api_uri'] = '/api/sam/role/all';
-                $p_api_vars['page'] = 'all' ;
-                $list = $this->performRequest($p_api_vars);
-            }
-            if(in_array($dataToList, array('policy'))) {
-                $p_api_vars['api_uri'] = '/api/sam/policy/all';
-                $p_api_vars['page'] = 'all' ;
-                $list = $this->performRequest($p_api_vars);
-            }
+
+//            var_dump($list);
+
+//            if (in_array($dataToList, array('role'))) {
+//                $p_api_vars['api_uri'] = '/api/sam/role/all';
+//                $p_api_vars['page'] = 'all' ;
+//                $list = $this->performRequest($p_api_vars);
+//            }
+//            if (in_array($dataToList, array('policy'))) {
+//                $p_api_vars['api_uri'] = '/api/sam/policy/all';
+//                $p_api_vars['page'] = 'all' ;
+//                $list = $this->performRequest($p_api_vars);
+//            }
         } catch (\Exception $e) {
 //            var_dump($e->getMessage()) ;
             return array('error' => $e->getMessage());

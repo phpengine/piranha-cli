@@ -65,19 +65,32 @@ if (isset($pageVars["piranhaResult"]['error'])) {
 
 } else {
 
+//    var_dump($pageVars);
+
     $outVar = "" ;
-    if(array_key_exists('repositories', $pageVars["piranhaResult"]['data'])) {
-        $repo_count = count($pageVars["piranhaResult"]['data']['repositories']) ;
-        for ($irow = 0; $irow <= $repo_count ; $irow++) {
-            unset($pageVars["piranhaResult"]['data']['repositories'][$irow]['url_git']);
-            unset($pageVars["piranhaResult"]['data']['repositories'][$irow]['settings']);
-            unset($pageVars["piranhaResult"]['data']['repositories'][$irow]['features']);
-            unset($pageVars["piranhaResult"]['data']['repositories'][$irow]['project-owner']);
-            unset($pageVars["piranhaResult"]['data']['repositories'][$irow]['project-slug']);
-            unset($pageVars["piranhaResult"]['data']['repositories'][$irow]['project-name']);
-            unset($pageVars["piranhaResult"]['data']['repositories'][$irow]['id']);
+    if(array_key_exists('buckets', $pageVars["piranhaResult"]['data'])) {
+        $repo_count = count($pageVars["piranhaResult"]['data']['buckets']) ;
+        for ($irow = 0; $irow < $repo_count ; $irow++) {
+            unset($pageVars["piranhaResult"]['data']['buckets'][$irow]['ss3_bucket_id']);
+
+            if (isset($pageVars["piranhaResult"]['data']['buckets'][$irow]['public'])) {
+                $pageVars["piranhaResult"]['data']['buckets'][$irow]['public'] =
+                    ($pageVars["piranhaResult"]['data']['buckets'][$irow]['public'] === true)
+                        ? "true" : "false" ;
+            }
+
+            if (is_null($pageVars["piranhaResult"]['data']['buckets'][$irow]['description'])) {
+                $pageVars["piranhaResult"]['data']['buckets'][$irow]['description'] = 'NULL' ;
+            }
+
+//            if (is_bool($pageVars["piranhaResult"]['data']['buckets'][$irow]['description'])) {
+//                $pageVars["piranhaResult"]['data']['buckets'][$irow]['description'] =
+//                    ($pageVars["piranhaResult"]['data']['buckets'][$irow]['description'] === true)
+//                        ? "true" : "false" ;
+//            }
+
         }
-        $outVar = getListAsCLITable($pageVars["piranhaResult"]['data']['repositories']) ;
+        $outVar = getListAsCLITable($pageVars["piranhaResult"]['data']['buckets']) ;
     }
     echo $outVar;
 

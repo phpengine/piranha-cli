@@ -173,7 +173,7 @@ class PiranhaBaseLibs extends Base {
         return $profiles ;
     }
 
-    public function performRequest($request_vars) {
+    public function performRequest($request_vars, $save_output=false, $destination=null) {
         $server_url = (isset($this->params["piranha-endpoint"])) ? $this->params["piranha-endpoint"] : 'https://api.piranha.sh' ;
 
         $post_data['user'] = $this->accessKey ;
@@ -182,9 +182,10 @@ class PiranhaBaseLibs extends Base {
         $post_data['secret_key'] = $this->secretKey ;
         $post_data['page'] = 'all' ;
 
-//        var_dump($post_data);
 
         $post_data = array_merge($request_vars, $post_data) ;
+
+//        var_dump($post_data);
 
         $loggingFactory = new \Model\Logging();
         $logging = $loggingFactory->getModel($this->params);
@@ -196,17 +197,35 @@ class PiranhaBaseLibs extends Base {
             return false ;
         }
 
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $server_url.'/'.$request_vars['api_uri'] ,
-            CURLOPT_POSTFIELDS => http_build_query($post_data),
-            CURLOPT_POST => true,
-            CURLOPT_RETURNTRANSFER => true
-        ]);
-        $curl_result = curl_exec($curl);
 
+        $curl = curl_init();
+
+        if ($save_output === true) {
+
+            $fp = fopen ($destination, 'w+');
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $server_url.'/'.$request_vars['api_uri'] ,
+                CURLOPT_POSTFIELDS => http_build_query($post_data),
+                CURLOPT_POST => true,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FILE => $fp
+            ]);
+        } else {
+
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $server_url.'/'.$request_vars['api_uri'] ,
+                CURLOPT_POSTFIELDS => http_build_query($post_data),
+                CURLOPT_POST => true,
+                CURLOPT_RETURNTRANSFER => true
+            ]);
+
+        }
+        $curl_result = curl_exec($curl);
 //        var_dump('$curl_result');
 //        var_dump($curl_result);
+        if ($save_output === true) {
+            fclose($fp) ;
+        }
         if (curl_errno($curl)) {
             $error_msg = curl_error($curl);
             $logging->log("Request Failed - $error_msg",
@@ -225,6 +244,5 @@ class PiranhaBaseLibs extends Base {
 //        var_dump($curl_result_json);
         return $curl_result_json ;
     }
-
 
 }
