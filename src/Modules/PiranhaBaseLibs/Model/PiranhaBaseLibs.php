@@ -173,19 +173,18 @@ class PiranhaBaseLibs extends Base {
         return $profiles ;
     }
 
-    public function performRequest($request_vars, $save_output=false, $destination=null) {
+    public function performRequest($request_vars, $save_output=false, $destination=null, $upload_file=null) {
         $server_url = (isset($this->params["piranha-endpoint"])) ? $this->params["piranha-endpoint"] : 'https://api.piranha.sh' ;
 
-        $post_data['user'] = $this->accessKey ;
-        $post_data['pass'] = $this->secretKey ;
+//        $post_data['user'] = $this->accessKey ;
+//        $post_data['pass'] = $this->secretKey ;
         $post_data['key_id'] = $this->accessKey ;
         $post_data['secret_key'] = $this->secretKey ;
         $post_data['page'] = 'all' ;
 
+//        var_dump($request_vars);
 
         $post_data = array_merge($request_vars, $post_data) ;
-
-//        var_dump($post_data);
 
         $loggingFactory = new \Model\Logging();
         $logging = $loggingFactory->getModel($this->params);
@@ -210,23 +209,35 @@ class PiranhaBaseLibs extends Base {
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_FILE => $fp
             ]);
-        } else {
 
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $server_url.'/'.$request_vars['api_uri'] ,
-                CURLOPT_POSTFIELDS => http_build_query($post_data),
-                CURLOPT_POST => true,
-                CURLOPT_RETURNTRANSFER => true
-            ]);
+        } else if (is_null($upload_file)){
 
+            curl_setopt($curl, CURLOPT_URL, $server_url.'/'.$request_vars['api_uri']);
+            curl_setopt($curl, CURLOPT_POST, true );
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
+            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($post_data)) ;
+
+
+        } else if (!is_null($upload_file)) {
+
+            $one_file['name'] = basename($upload_file) ;
+            $one_file['path'] = $upload_file ;
+            $noncurl_result_json = $this->do_post_request_without_curl($server_url.'/'.$request_vars['api_uri'], $post_data, $one_file) ;
+
+            $noncurl_result_json = json_decode($noncurl_result_json, true) ;
+    //        var_dump($curl_result_json);
+            return $noncurl_result_json ;
         }
+
+
         $curl_result = curl_exec($curl);
-//        var_dump('$curl_result');
-//        var_dump($curl_result);
+
         if ($save_output === true) {
             fclose($fp) ;
         }
         if (curl_errno($curl)) {
+
+
             $error_msg = curl_error($curl);
             $logging->log("Request Failed - $error_msg",
                 $this->getModuleName(),
@@ -243,6 +254,52 @@ class PiranhaBaseLibs extends Base {
         $curl_result_json = json_decode($curl_result, true) ;
 //        var_dump($curl_result_json);
         return $curl_result_json ;
+    }
+
+
+    function do_post_request_without_curl($url, $postdata, $file)
+    {
+        $data = "";
+        $boundary = "---------------------".substr(md5(rand(0,32000)), 0, 10);
+
+        //Collect Postdata
+        foreach($postdata as $key => $val)
+        {
+            $data .= "--$boundary\n";
+            $data .= "Content-Disposition: form-data; name=\"".$key."\"\n\n".$val."\n";
+        }
+
+        $data .= "--$boundary\n";
+
+        //Collect Filedata
+        $fileContents = file_get_contents($file['path']);
+        var_dump($fileContents);
+
+        $data .= "Content-Disposition: form-data; name=\"file\"; filename=\"{$file['name']}\"\n";
+//            $data .= "Content-Type: image/jpeg\n";
+        $data .= "Content-Transfer-Encoding: binary\n\n";
+        $data .= $fileContents."\n";
+        $data .= "--$boundary--\n";
+
+
+        $params = array('http' => array(
+            'method' => 'POST',
+            'header' => 'Content-Type: multipart/form-data; boundary='.$boundary,
+            'content' => $data
+        ));
+
+        $ctx = stream_context_create($params);
+        $fp = fopen($url, 'rb', false, $ctx);
+
+        if (!$fp) {
+            throw new Exception("Problem with $url, $php_errormsg");
+        }
+
+        $response = @stream_get_contents($fp);
+        if ($response === false) {
+            throw new Exception("Problem reading data from $url, $php_errormsg");
+        }
+        return $response;
     }
 
 }

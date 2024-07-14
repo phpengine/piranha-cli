@@ -38,7 +38,7 @@ class PiranhaObjectStorage extends Base {
             if (is_array($thisModel)) { return $this->failDependencies($pageVars, $this->content, $thisModel) ; }
             $isDefaultAction = self::checkDefaultActions($pageVars, array(), $thisModel) ;
             if ( is_array($isDefaultAction) ) { return $isDefaultAction; }
-            $this->content["piranhaResult"] = $thisModel->askWhetherToCreateObject();
+            $this->content["piranhaResult"] = $thisModel->askWhetherToUploadObject();
             return array ("type"=>"view", "view"=>"PiranhaObjectStorageAPI", "pageVars"=>$this->content);
         }
 

@@ -31,8 +31,8 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
         if ($this->askForAddExecute() != true) { return false; }
         $this->initialisePiranha();
         $this->getBucketName();
-        $this->getBucketDescription();
-        $unique= md5(uniqid(rand(), true));
+        $this->getFileName();
+//        $this->getFileDestination();
 
         try {
 
@@ -41,31 +41,46 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
             $logging->log("Finding Bucket {$this->params["bucket-name"]}", $this->getModuleName());
 //
             $bucketExists = $this->doesBucketExist() ;
+
             if ($bucketExists == false) {
 
                 $logging->log("Bucket {$this->params["bucket-name"]} does not exist", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
 
             } else {
 
-                $logging->log("Bucket {$this->params["bucket-name"]} Not Found, creating...", $this->getModuleName());
-                $p_api_vars['api_uri'] = '/api/ss3/bucket/create';
+                $logging->log("Bucket {$this->params["bucket-name"]} Found, uploading {$this->params["file-name"]} to it...", $this->getModuleName());
+                $p_api_vars['api_uri'] = '/api/ss3/object/create';
                 $p_api_vars['region'] = 'dc' ;
                 $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
-                $p_api_vars['bucket_description'] = $this->params["bucket-description"] ;
-                $result = $this->performRequest($p_api_vars);
+//                $p_api_vars['object_name'] = $this->params["destination"] ;
+                $p_api_vars['object_name'] = basename($this->params["file-name"]) ;
+//                $p_api_vars['path'] = $this->params["file-name"] ;
+
+                $result = $this->performRequest($p_api_vars, false, null, $this->params["file-name"]);
+
+//                $ch = curl_init('http://example.com/upload.php');
+//                curl_setopt($ch, CURLOPT_POST, true);
+//                curl_setopt($ch, CURLOPT_POSTFIELDS, [
+//                    'file' => $curlFile,
+//                ]);
+
+//                $result = curl_exec($ch);
 
 //                var_dump($result);
 
                 $logging->log("Creation Status is : {$result['status']}", $this->getModuleName());
                 if ($result['status'] === 'OK') {
-                    $logging->log("Created Name is : {$result['bucket']['ss3_bucket_name']}", $this->getModuleName());
+                    $logging->log("Created File name is : {$result['name']} in bucket : {$result['bucket']}", $this->getModuleName());
+                } else if (isset($result['error'])) {
+                    $logging->log("Error is : {$result['error']}", $this->getModuleName());
                 }
-                $logging->log("Looking for created bucket {$this->params["bucket-name"]}", $this->getModuleName());
-                $bucketExists = $this->doesBucketExist() ;
-                if ($bucketExists === true) {
-                    $logging->log("Found Bucket {$this->params["bucket-name"]}, creation confirmed ", $this->getModuleName());
+
+                $logging->log("Looking for uploaded file ".basename($this->params["file-name"]), $this->getModuleName());
+                $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], basename($this->params["file-name"])) ;
+                if ($remoteFileExists === false) {
+                    $logging->log("File {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]} not found, upload failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
                 } else {
-                    $logging->log("Unable to find Bucket {$this->params["bucket-name"]}, creation failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+                    $logging->log("File {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]} exists, upload confirmed", $this->getModuleName());
                 }
 
             }
