@@ -1,9 +1,0 @@
----
-
-- Logging[log]:
-    message: "The Demo Pharaoh Configure Role"
-    guess: true
-
-- Logging[log]:
-    message: "Show the demo variable: $$my_variable"
-    guess: true
