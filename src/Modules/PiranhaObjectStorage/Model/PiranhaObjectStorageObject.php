@@ -52,35 +52,17 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
                 $p_api_vars['api_uri'] = '/api/ss3/object/create';
                 $p_api_vars['region'] = 'dc' ;
                 $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
-//                $p_api_vars['object_name'] = $this->params["destination"] ;
                 $p_api_vars['object_name'] = basename($this->params["file-name"]) ;
-//                $p_api_vars['path'] = $this->params["file-name"] ;
 
-                $result = $this->performRequest($p_api_vars, false, null, $this->params["file-name"]);
-
-//                $ch = curl_init('http://example.com/upload.php');
-//                curl_setopt($ch, CURLOPT_POST, true);
-//                curl_setopt($ch, CURLOPT_POSTFIELDS, [
-//                    'file' => $curlFile,
-//                ]);
-
-//                $result = curl_exec($ch);
-
-//                var_dump($result);
-
-                $logging->log("Creation Status is : {$result['status']}", $this->getModuleName());
-                if ($result['status'] === 'OK') {
-                    $logging->log("Created File name is : {$result['name']} in bucket : {$result['bucket']}", $this->getModuleName());
-                } else if (isset($result['error'])) {
-                    $logging->log("Error is : {$result['error']}", $this->getModuleName());
-                }
-
-                $logging->log("Looking for uploaded file ".basename($this->params["file-name"]), $this->getModuleName());
-                $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], basename($this->params["file-name"])) ;
-                if ($remoteFileExists === false) {
-                    $logging->log("File {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]} not found, upload failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+                if ($p_api_vars['object_name'] === '*') {
+                    $source_dir = dirname($this->params["file-name"]) ;
+                    $all_files = scandir($source_dir) ;
+                    $all_files = array_diff($all_files, array('.', '..')) ;
+                    foreach ($all_files as $file) {
+                        $this->singleObjectUpload($source_dir.DS.$file, $p_api_vars) ;
+                    }
                 } else {
-                    $logging->log("File {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]} exists, upload confirmed", $this->getModuleName());
+                    $this->singleObjectUpload($p_api_vars['object_name'], $p_api_vars) ;
                 }
 
             }
@@ -92,6 +74,44 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
         return true ;
 
     }
+    protected function singleObjectUpload($single_file, $p_api_vars) {
+
+        try {
+
+            $loggingFactory = new \Model\Logging();
+            $logging = $loggingFactory->getModel($this->params);
+//            $logging->log("Finding Bucket {$this->params["bucket-name"]}", $this->getModuleName());
+
+            $p_api_vars['object_name'] = $single_file ;
+//            var_dump($p_api_vars['object_name']);
+//            var_dump($this->params["file-name"]);
+//            die() ;
+            $result = $this->performRequest($p_api_vars, false, null, $single_file);
+
+            $logging->log("Creation Status is : {$result['status']}", $this->getModuleName());
+            if ($result['status'] === 'OK') {
+                $logging->log("Created File name is : {$result['name']} in bucket : {$result['bucket']}", $this->getModuleName());
+            } else if (isset($result['error'])) {
+                $logging->log("Error is : {$result['error']}", $this->getModuleName());
+            }
+
+            $logging->log("Looking for uploaded file ".basename($single_file), $this->getModuleName());
+            $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], basename($single_file)) ;
+            if ($remoteFileExists === false) {
+                $logging->log("File ".basename($single_file)." in Bucket {$this->params["bucket-name"]} not found, upload failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+            } else {
+                $logging->log("File ".basename($single_file)." in Bucket {$this->params["bucket-name"]} exists, upload confirmed", $this->getModuleName());
+            }
+
+        } catch (\Exception $e) {
+            echo $e->getMessage();
+        }
+
+        return true ;
+
+    }
+
+
 
 
     protected function performPiranhaObjectStorageDownloadObject($params=null){
@@ -256,10 +276,10 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
             return ;
         }
         $question = 'Enter bucket name: ';
-        $this->params["bucket-name"]= self::askForInput($question, true);
+        $this->params["bucket-name"] = self::askForInput($question, true);
     }
 
-    protected function  getFileName()
+    protected function getFileName()
     {
         if (isset($this->params["file-name"])) { return ; }
         if (isset($this->params["file"])) {

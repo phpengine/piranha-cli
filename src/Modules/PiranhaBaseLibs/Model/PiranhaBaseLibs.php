@@ -175,15 +175,9 @@ class PiranhaBaseLibs extends Base {
 
     public function performRequest($request_vars, $save_output=false, $destination=null, $upload_file=null) {
         $server_url = (isset($this->params["piranha-endpoint"])) ? $this->params["piranha-endpoint"] : 'https://api.piranha.sh' ;
-
-//        $post_data['user'] = $this->accessKey ;
-//        $post_data['pass'] = $this->secretKey ;
         $post_data['key_id'] = $this->accessKey ;
         $post_data['secret_key'] = $this->secretKey ;
         $post_data['page'] = 'all' ;
-
-//        var_dump($request_vars);
-
         $post_data = array_merge($request_vars, $post_data) ;
 
         $loggingFactory = new \Model\Logging();
@@ -195,7 +189,6 @@ class PiranhaBaseLibs extends Base {
                 LOG_FAILURE_EXIT_CODE);
             return false ;
         }
-
 
         $curl = curl_init();
 
@@ -222,13 +215,14 @@ class PiranhaBaseLibs extends Base {
 
             $one_file['name'] = basename($upload_file) ;
             $one_file['path'] = $upload_file ;
+            $post_data['object_name'] = $one_file['name'] ;
+//            var_dump($post_data);
+//            die() ;
             $noncurl_result_json = $this->do_post_request_without_curl($server_url.'/'.$request_vars['api_uri'], $post_data, $one_file) ;
-
             $noncurl_result_json = json_decode($noncurl_result_json, true) ;
-    //        var_dump($curl_result_json);
+//            var_dump($noncurl_result_json);
             return $noncurl_result_json ;
         }
-
 
         $curl_result = curl_exec($curl);
 
@@ -273,14 +267,15 @@ class PiranhaBaseLibs extends Base {
 
         //Collect Filedata
         $fileContents = file_get_contents($file['path']);
-        var_dump($fileContents);
+//        var_dump($file['name']);
+//        var_dump($file['path']);
+//        var_dump($fileContents);
 
         $data .= "Content-Disposition: form-data; name=\"file\"; filename=\"{$file['name']}\"\n";
 //            $data .= "Content-Type: image/jpeg\n";
         $data .= "Content-Transfer-Encoding: binary\n\n";
         $data .= $fileContents."\n";
         $data .= "--$boundary--\n";
-
 
         $params = array('http' => array(
             'method' => 'POST',
@@ -292,12 +287,12 @@ class PiranhaBaseLibs extends Base {
         $fp = fopen($url, 'rb', false, $ctx);
 
         if (!$fp) {
-            throw new Exception("Problem with $url, $php_errormsg");
+            throw new \Exception("Problem with $url, $php_errormsg");
         }
 
         $response = @stream_get_contents($fp);
         if ($response === false) {
-            throw new Exception("Problem reading data from $url, $php_errormsg");
+            throw new \Exception("Problem reading data from $url, $php_errormsg");
         }
         return $response;
     }
