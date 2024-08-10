@@ -4,17 +4,17 @@
 
 The Piranha Cloud Hosting CLI Tool
 
-    
+
 ## Installation
 
 First you'll need to install Git and PHP5. If you don't have either, google them - they're easy to install. To install
 piranha cli on your On your Mac, Linux or  Unix Machine silently do the following:
 
-git clone https://github.com/phpengine/piranha-cli.git && sudo php piranha/install-silent
+git clone https://github.com/phpengine/piranha-cli.git && sudo php piranha-cli/install-silent
 
 or on Windows, open a terminal with the "Run as Administrator" option...
 
-git clone https://github.com/phpengine/piranha-cli.git && php piranha\install-silent
+git clone https://github.com/phpengine/piranha-cli.git && php piranha-cli\install-silent
 
 ... that's it, now the piranha command should be available at the command line for you.
 

@@ -81,7 +81,7 @@ class Installer {
 
     private function deleteExecutorIfExists(){
         $command = 'rm -f '.$this->programExecutorFolder.'/'.$this->programNameMachine;
-        self::executeAndOutput($command, "Program Executor Deleted  if existed");
+        self::executeAndOutput($command, "Program Executor Deleted if existed");
         return true;
     }
 
@@ -130,7 +130,7 @@ TITLE;
         $this->completionData = <<<COMPLETION
 ... All done!
 *******************************
-Thanks for installing , visit www.pharaohtools.com for more
+Thanks for installing , visit www.piranha.sh for more information
 
 COMPLETION;
     }

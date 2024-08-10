@@ -103,7 +103,7 @@ class Installer {
     private function askForProgramDataFolder() {
         if (in_array(PHP_OS, array("Windows", "WINNT"))) {
             $this->programDataFolder = 'C:'.
-                DS.'PharaohTools'.DS.$this->programNameMachine.DS.$this->programNameMachine ; }
+                DS.'PiranhaCLI'.DS.$this->programNameMachine.DS.$this->programNameMachine ; }
         else if (in_array(PHP_OS, array("Linux", "Solaris", "FreeBSD", "OpenBSD", "Darwin"))) {
             $this->programDataFolder = DS."opt".DS.$this->programNameMachine.DS.$this->programNameMachine ; }
     }
@@ -111,7 +111,7 @@ class Installer {
     private function askForProgramExecutorFolder(){
         if (in_array(PHP_OS, array("Windows", "WINNT"))) {
             $sd = getenv('SystemDrive') ;
-            $this->programExecutorFolder = $sd.DS.'PharaohTools' ;
+            $this->programExecutorFolder = $sd.DS.'PiranhaCLI' ;
             return $this->programExecutorFolder ; }
         else if (in_array(PHP_OS, array("Darwin"))) {
             $this->programExecutorFolder = '/usr/local/bin' ;
@@ -252,7 +252,7 @@ TITLE;
         $this->completionData = <<<COMPLETION
 ... All done!
 *******************************
-Thanks for installing , visit www.pharaohtools.com for more
+Thanks for installing , visit www.piranha.sh for more information
 
 COMPLETION;
     }
@@ -272,8 +272,8 @@ COMPLETION;
     }
 
     private function winCloseAndCompleteInNewWindow() {
-        echo "Opening Pharaoh Configure in new window...\n" ;
-        $command = 'start cmd /k echo "Pharaoh Configure should be ready"';
+        echo "Opening Piranha CLI in new window...\n" ;
+        $command = 'start cmd /k echo "Piranha CLI should be ready"';
         self::executeAndOutput($command);
     }
 
