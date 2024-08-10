@@ -61,7 +61,7 @@ class PiranhaObjectStorage extends Base {
         }
 
 
-        if ($action=="list") {
+        if (in_array($action, array("list", "ls"))) {
             $thisModel = $this->getModelAndCheckDependencies(substr(get_class($this), 11), $pageVars, "Listing") ;
             if (is_array($thisModel)) { return $this->failDependencies($pageVars, $this->content, $thisModel) ; }
             $isDefaultAction = self::checkDefaultActions($pageVars, array(), $thisModel) ;
