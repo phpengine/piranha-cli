@@ -59,7 +59,7 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
                     $all_files = scandir($source_dir) ;
                     $all_files = array_diff($all_files, array('.', '..')) ;
                     foreach ($all_files as $file) {
-                        $this->singleObjectUpload($source_dir.DS.$file, $p_api_vars) ;
+                        $this->loopUpload($source_dir.DS.$file, $p_api_vars);
                     }
                 } else {
                     $this->singleObjectUpload($p_api_vars['object_name'], $p_api_vars) ;
@@ -74,6 +74,16 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
         return true ;
 
     }
+
+    protected function loopUpload($file, $p_api_vars) {
+
+        if (is_dir($file)) {
+            $this->loopUpload($file, $p_api_vars);
+        } else {
+            $this->singleObjectUpload($file, $p_api_vars) ;
+        }
+    }
+
     protected function singleObjectUpload($single_file, $p_api_vars) {
 
         try {
