@@ -20,7 +20,7 @@ class PiranhaBaseLibs extends Base {
         $this->accessKey = $this->askForPiranhaAccessKey() ;
         $this->secretKey = $this->askForPiranhaSecretKey() ;
         $this->region = $this->askForPiranhaRegion() ;
-        $this->endpointUrl = $this->askForPiranhaEndpoint() ;
+//        $this->endpointUrl = $this->askForPiranhaEndpoint() ;
     }
 
     public function __construct($params) {
@@ -42,6 +42,10 @@ class PiranhaBaseLibs extends Base {
     protected function askForPiranhaAccessKey(){
         if (isset($this->params["piranha-access-key"])) {
             return $this->params["piranha-access-key"] ; }
+        if (isset($this->params["access-key"])) {
+            return $this->params["access-key"] ; }
+        if (isset($this->params["accesskey"])) {
+            return $this->params["accesskey"] ; }
         $papyrusVar = \Model\AppConfig::getProjectVariable("piranha-access-key") ;
         if ($papyrusVar != null) {
             if ($this->params["guess"] == true) { return $papyrusVar ; }
@@ -61,18 +65,22 @@ class PiranhaBaseLibs extends Base {
     protected function askForPiranhaSecretKey(){
         if (isset($this->params["piranha-secret-key"])) {
             return $this->params["piranha-secret-key"] ; }
+        if (isset($this->params["secret-key"])) {
+            return $this->params["secret-key"] ; }
+        if (isset($this->params["secretkey"])) {
+            return $this->params["secretkey"] ; }
         $papyrusVar = \Model\AppConfig::getProjectVariable("piranha-secret-key") ;
         if ($papyrusVar != null) {
             if ($this->params["guess"] == true) { return $papyrusVar ; }
-            $question = 'Use Project saved Piranha EC2 Client ID?';
+            $question = 'Use Project saved Piranha Secret Key?';
             if (self::askYesOrNo($question, true) == true) {
                 return $papyrusVar ; } }
         $appVar = \Model\AppConfig::getProjectVariable("piranha-secret-key") ;
         if ($appVar != null) {
-            $question = 'Use Application saved Piranha EC2 Client ID?';
+            $question = 'Use Application saved Piranha Secret Key?';
             if (self::askYesOrNo($question, true) == true) {
                 return $appVar ; } }
-        $question = 'Enter Piranha EC2 Secret Key';
+        $question = 'Enter Piranha Secret Key';
         return self::askForInput($question, true);
     }
 
@@ -122,14 +130,14 @@ class PiranhaBaseLibs extends Base {
         return self::askForInput($question, true);
     }
 
-    protected function getServerGroupRegionID() {
-        if (isset($this->params["region-id"])) {
-            return $this->params["region-id"] ; }
-        if (isset($this->params["guess"])) {
-            return $this->region ; }
-        $question = 'Enter Region ID for this Server Group';
-        return self::askForInput($question, true);
-    }
+//    protected function getServerGroupRegionID() {
+//        if (isset($this->params["region-id"])) {
+//            return $this->params["region-id"] ; }
+//        if (isset($this->params["guess"])) {
+//            return $this->region ; }
+//        $question = 'Enter Region ID for this Server Group';
+//        return self::askForInput($question, true);
+//    }
 
     protected function setProjVars() {
         \Model\AppConfig::setProjectVariable("piranha-secret-key", $this->secretKey) ;
