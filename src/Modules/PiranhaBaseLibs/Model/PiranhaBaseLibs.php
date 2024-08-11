@@ -19,7 +19,7 @@ class PiranhaBaseLibs extends Base {
         }
         $this->accessKey = $this->askForPiranhaAccessKey() ;
         $this->secretKey = $this->askForPiranhaSecretKey() ;
-        $this->region = $this->askForPiranhaRegion() ;
+//        $this->region = $this->askForPiranhaRegion() ;
 //        $this->endpointUrl = $this->askForPiranhaEndpoint() ;
     }
 
@@ -147,23 +147,39 @@ class PiranhaBaseLibs extends Base {
     }
 
     protected function setKeysFromProfile() {
+        $loggingFactory = new \Model\Logging();
+        $logging = $loggingFactory->getModel($this->params);
         $profile_paths = [
             getenv('HOME').'/.piranha/credentials',
             getenv('HOME').'/.aws/credentials'
         ] ;
         # var_dump(getenv('HOME') );
+        $searched_files = [] ;
         foreach ($profile_paths as $profile_path) {
+//            var_dump($this->params);
             if (file_exists($profile_path)) {
+                if (array_key_exists("v", $this->params)) {
+                    $logging->log("Searching for Profile {$this->profileName} in $profile_path", $this->getModuleName());
+                }
+                $searched_files[] = $profile_path ;
                 $profiles = $this->getProfileArrayFromFile($profile_path) ;
 //                var_dump($profiles);
                 if (array_key_exists($this->profileName, $profiles ) ) {
-//                    echo "Profile $this->profileName found in $profile_path\n" ;
+                    if (array_key_exists("v", $this->params)) {
+                        $logging->log("Profile $this->profileName found in $profile_path", $this->getModuleName());
+                    }
                     $this->params["piranha-secret-key"] = $profiles[$this->profileName]['secret_key'] ;
                     $this->params["piranha-access-key"] = $profiles[$this->profileName]['access_key'] ;
-                    break ;
+                    return ;
+                }
+            } else {
+                if (array_key_exists("v", $this->params)) {
+                    $logging->log("No Profile file $profile_path found", $this->getModuleName());
                 }
             }
         }
+        $logging->log("Unable to find Profile {$this->profileName} in ".join(', ', $searched_files), $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+        exit(1) ;
     }
 
 
@@ -223,7 +239,9 @@ class PiranhaBaseLibs extends Base {
 
             $one_file['name'] = basename($upload_file) ;
             $one_file['path'] = $upload_file ;
-            $post_data['object_name'] = $one_file['name'] ;
+            if (!isset($post_data['object_name'])) {
+                $post_data['object_name'] = $one_file['name'] ;
+            }
 //            var_dump($post_data);
 //            die() ;
             $noncurl_result_json = $this->do_post_request_without_curl($server_url.'/'.$request_vars['api_uri'], $post_data, $one_file) ;
@@ -238,8 +256,6 @@ class PiranhaBaseLibs extends Base {
             fclose($fp) ;
         }
         if (curl_errno($curl)) {
-
-
             $error_msg = curl_error($curl);
             $logging->log("Request Failed - $error_msg",
                 $this->getModuleName(),
@@ -264,6 +280,10 @@ class PiranhaBaseLibs extends Base {
         $data = "";
         $boundary = "---------------------".substr(md5(rand(0,32000)), 0, 10);
 
+//        $postdata['key'] = 'test2/' ;
+//        $postdata['path'] = 'test2/' ;
+//        $postdata['object_name'] = 'wolverine.jpg' ;
+//        unset($postdata['page']) ;
         //Collect Postdata
         foreach($postdata as $key => $val)
         {
@@ -282,6 +302,9 @@ class PiranhaBaseLibs extends Base {
         $data .= "Content-Disposition: form-data; name=\"file\"; filename=\"{$file['name']}\"\n";
 //            $data .= "Content-Type: image/jpeg\n";
         $data .= "Content-Transfer-Encoding: binary\n\n";
+
+        var_dump($data);
+
         $data .= $fileContents."\n";
         $data .= "--$boundary--\n";
 
@@ -303,6 +326,61 @@ class PiranhaBaseLibs extends Base {
             throw new \Exception("Problem reading data from $url, $php_errormsg");
         }
         return $response;
+    }
+
+    static function getListAsCLITable($list_entries) {
+        $outvar = '' ;
+        $max_lengths = [] ;
+        // get max lengths
+        foreach($list_entries as $list_entry) {
+            foreach($list_entry as $key=>$value) {
+                if (is_string($value)) {
+                    if (isset($max_lengths[$key])) {
+                        $max_lengths[$key] = (strlen($value) > $max_lengths[$key]) ? strlen($value) : $max_lengths[$key] ;
+//                    $max_lengths[$key] = $max_lengths[$key] + 1;
+//                    if ($key === 'name') {
+//                        echo $max_lengths[$key]." - " ;
+//                    }
+                    } else {
+                        $max_lengths[$key] = strlen($value) + 1;
+                    }
+                } else {
+                    $max_lengths[$key] = strlen($key) + 1;
+                }
+            }
+        }
+//    var_dump($max_lengths);
+        // use title length if longer
+        foreach($max_lengths as $key=>$value) {
+            if (strlen($key) > $value) {
+                $max_lengths[$key] = strlen($key)+1 ;
+            }
+        }
+//    var_dump($max_lengths);
+        // get titles
+        foreach($max_lengths as $key=>$value) {
+            $outvar .= "$key".getSpaceString($value-strlen($key)) ;
+        }
+        $outvar .= "\n" ;
+        // get
+        foreach($list_entries as $list_entry) {
+            foreach($list_entry as $key=>$value) {
+                if (is_string($value)) {
+                    $chars = $max_lengths[$key] - strlen($value) ;
+                    $outvar .= "$value".getSpaceString($chars) ;
+                } else {
+                    if (isset($max_lengths[$key])) {
+                        $chars = $max_lengths[$key] - strlen( "Array") ;
+                        $outvar .= "Array".getSpaceString($chars) ;
+                    } else {
+                        $chars = $max_lengths[$key] - strlen( "NULL") ;
+                        $outvar .= "NULL".getSpaceString($chars) ;
+                    }
+                }
+            }
+            $outvar .= "\n" ;
+        }
+        return $outvar ;
     }
 
 }
