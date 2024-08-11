@@ -51,15 +51,17 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
                 $logging->log("Bucket {$this->params["bucket-name"]} Found, uploading {$this->params["file-name"]} to it...", $this->getModuleName());
                 $p_api_vars['api_uri'] = '/api/ss3/object/create';
                 $p_api_vars['region'] = 'dc' ;
+                $p_api_vars['path'] = $this->params["path"] ;
                 $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
                 $p_api_vars['object_name'] = basename($this->params["file-name"]) ;
 
                 if ($p_api_vars['object_name'] === '*') {
-                    $source_dir = dirname($this->params["file-name"]) ;
-                    $all_files = scandir($source_dir) ;
+                    $original_dir = dirname($this->params["file-name"]) ;
+                    $all_files = scandir($original_dir) ;
                     $all_files = array_diff($all_files, array('.', '..')) ;
+                    $key_dir = '/' ;
                     foreach ($all_files as $file) {
-                        $this->loopUpload($source_dir.DS.$file, $p_api_vars);
+                        $this->loopUpload($original_dir.DS.$file, $p_api_vars, $original_dir, $key_dir);
                     }
                 } else {
                     $this->singleObjectUpload($p_api_vars['object_name'], $p_api_vars) ;
@@ -75,16 +77,22 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
 
     }
 
-    protected function loopUpload($file, $p_api_vars) {
-
+    protected function loopUpload($file, $p_api_vars, $original_dir='', $key_dir='') {
         if (is_dir($file)) {
-            $this->loopUpload($file, $p_api_vars);
+            var_dump("dir $file...");
+            $source_dir = $file ;
+            $all_files = scandir($source_dir) ;
+            $all_files = array_diff($all_files, array('.', '..')) ;
+            foreach ($all_files as $file) {
+                $this->loopUpload($source_dir.DS.$file, $p_api_vars, $original_dir, $key_dir);
+            }
         } else {
-            $this->singleObjectUpload($file, $p_api_vars) ;
+            var_dump("file lup $original_dir - $key_dir - $file...") ;
+            $this->singleObjectUpload($file, $p_api_vars, $original_dir, $key_dir) ;
         }
     }
 
-    protected function singleObjectUpload($single_file, $p_api_vars) {
+    protected function singleObjectUpload($single_file, $p_api_vars, $original_dir='', $key_dir='') {
 
         try {
 
@@ -92,8 +100,9 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
             $logging = $loggingFactory->getModel($this->params);
 //            $logging->log("Finding Bucket {$this->params["bucket-name"]}", $this->getModuleName());
 
-            $p_api_vars['object_name'] = $single_file ;
-//            var_dump($p_api_vars['object_name']);
+            $p_api_vars['object_name'] = str_replace($original_dir.DS, '', $single_file) ;
+            var_dump("sup 1 -- " . $single_file);
+            var_dump("sup 2 -- " . $p_api_vars['object_name']);
 //            var_dump($this->params["file-name"]);
 //            die() ;
             $result = $this->performRequest($p_api_vars, false, null, $single_file);
@@ -228,42 +237,98 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
             $loggingFactory = new \Model\Logging();
             $logging = $loggingFactory->getModel($this->params);
 
-            $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], $this->params["file-name"]) ;
-            if ($remoteFileExists === false) {
-
-                $logging->log("File {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]} Not Found", $this->getModuleName());
-
-            } else {
-
-                $logging->log("File {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]} Found, deleting ...", $this->getModuleName());
-                $p_api_vars['api_uri'] = '/api/ss3/object/delete';
-                $p_api_vars['region'] = 'dc' ;
-                $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
-                $p_api_vars['object_id'] = $this->params["file-name"] ;
-                $result = $this->performRequest($p_api_vars);
-
-//                var_dump($result);
-
-                $logging->log("Deletion Status is : {$result['status']}", $this->getModuleName());
-                if ($result['status'] === 'OK') {
-                    $logging->log("Deleted Name is : {$result['object']}", $this->getModuleName());
-                }
-                $logging->log("Looking for deleted file {$this->params["file-name"]}", $this->getModuleName());
+            $last_char_filename = substr($this->params["file-name"], strlen($this->params["file-name"])-1, 1) ;
+            if ($last_char_filename !== '*') {
                 $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], $this->params["file-name"]) ;
                 if ($remoteFileExists === false) {
-                    $logging->log("File {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]}not found, deletion confirmed ", $this->getModuleName());
-                } else {
-                    $logging->log("File {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]} exists, deletion failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+                    $logging->log("File {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]} Not Found", $this->getModuleName());
+                    return true ;
                 }
-
             }
 
+            $logging->log("Deleting File/s {$this->params["file-name"]} in Bucket {$this->params["bucket-name"]} ...", $this->getModuleName());
+            $p_api_vars['api_uri'] = '/api/ss3/object/delete';
+            $p_api_vars['region'] = 'dc' ;
+            $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
+            $p_api_vars['object_id'] = $this->params["file-name"] ;
+
+            if ($p_api_vars['object_id'] === '*') {
+
+
+                $listingModel = \Model\SystemDetectionFactory::getCompatibleModel("PiranhaObjectStorage", "Listing", $this->params);
+
+//                $base_ctl = new \Controller\Base() ;
+//                $listingModel = $base_ctl->getModelAndCheckDependencies("PiranhaObjectStorage", [], "Listing") ;
+                $listingModel->initialisePiranha() ;
+                $all_files_array = $listingModel->getDataListFromPiranhaObjectStorage('file') ;
+
+                $all_files = array_column($all_files_array['data']['objects'], 'key') ;
+//                var_dump($all_files);
+//                die() ;
+
+//                    $source_dir = dirname($this->params["file-name"]) ;
+//                    $all_files = scandir($source_dir) ;
+//                    $all_files = array_diff($all_files, array('.', '..')) ;
+
+                foreach ($all_files as $file) {
+                    $this->loopDelete($file, $p_api_vars);
+                }
+            } else {
+                $this->singleObjectDelete($p_api_vars['object_name'], $p_api_vars) ;
+            }
 
         } catch(\Exception $e) {
             echo $e->getMessage();
         }
 
         return $result;
+    }
+
+
+
+    protected function loopDelete($file, $p_api_vars) {
+        if (is_dir($file)) {
+            $this->loopDelete($file, $p_api_vars);
+        } else {
+            $this->singleObjectDelete($file, $p_api_vars) ;
+        }
+    }
+
+    protected function singleObjectDelete($single_file, $p_api_vars) {
+
+        try {
+
+            $loggingFactory = new \Model\Logging();
+            $logging = $loggingFactory->getModel($this->params);
+//            $logging->log("Finding Bucket {$this->params["bucket-name"]}", $this->getModuleName());
+
+            $p_api_vars['object_name'] = $single_file ;
+//            var_dump($p_api_vars['object_name']);
+//            var_dump($this->params["file-name"]);
+//            die() ;
+            $result = $this->performRequest($p_api_vars, false, null, null);
+
+            $logging->log("Deletion Status is : {$result['status']}", $this->getModuleName());
+            if ($result['status'] === 'OK') {
+                $logging->log("Deleted File name is : {$result['name']} in bucket : {$result['bucket']}", $this->getModuleName());
+            } else if (isset($result['error'])) {
+                $logging->log("Error is : {$result['error']}", $this->getModuleName());
+            }
+
+            $logging->log("Looking for deleted file ".basename($single_file), $this->getModuleName());
+            $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], basename($single_file)) ;
+            if ($remoteFileExists === false) {
+                $logging->log("File ".basename($single_file)." in Bucket {$this->params["bucket-name"]} not found, deletion confirmed.", $this->getModuleName());
+            } else {
+                $logging->log("File ".basename($single_file)." in Bucket {$this->params["bucket-name"]} exists, deletion failed.", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+            }
+
+        } catch (\Exception $e) {
+            echo $e->getMessage();
+        }
+
+        return true ;
+
     }
 
     protected function askForAddExecute(){
