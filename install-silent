@@ -212,6 +212,7 @@ class Installer {
         else {
             $command = "rm -rf " ; }
         $fullCommand = $command.$this->startDirectory.DS.$this->programNameMachine;
+        echo "Deleting Installation Files\n" ;
         echo $fullCommand."\n" ;
         self::executeAndOutput($fullCommand);
     }
