@@ -43,6 +43,21 @@ class PiranhaObjectStorageList extends BasePiranhaObjectStorageAllOS {
         return self::askForArrayOption($question, $options, true);
     }
 
+    protected function getBucketName()
+    {
+        if (isset($this->params["bucket-name"])) { return ; }
+        if (isset($this->params["name"])) {
+            $this->params["bucket-name"] = $this->params["name"] ;
+            return ;
+        }
+        if (isset($this->params["bucket"])) {
+            $this->params["bucket-name"] = $this->params["bucket"] ;
+            return ;
+        }
+        $question = 'Enter bucket name: ';
+        $this->params["bucket-name"]= self::askForInput($question, true);
+    }
+
     public function getDataListFromPiranhaObjectStorage($dataToList) {
         $list = [] ;
         try {
@@ -51,8 +66,10 @@ class PiranhaObjectStorageList extends BasePiranhaObjectStorageAllOS {
                 $p_api_vars['page'] = 'all' ;
                 $list = $this->performRequest($p_api_vars);
             }
-            if (in_array($dataToList, array('file', 'files'))) {
+            if (in_array($dataToList, array('file', 'files', 'object', 'objects'))) {
+                $this->getBucketName() ;
                 $p_api_vars['api_uri'] = '/api/ss3/object/all';
+                $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
                 $p_api_vars['page'] = 'all' ;
                 $list = $this->performRequest($p_api_vars);
             }
