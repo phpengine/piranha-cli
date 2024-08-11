@@ -211,9 +211,8 @@ class Installer {
             $command = "rmdir /S /Q " ; }
         else {
             $command = "rm -rf " ; }
-        $fullCommand = $command.$this->startDirectory.DS.$this->programNameMachine;
+        $fullCommand = $command.$this->startDirectory ;
         echo "Deleting Installation Files\n" ;
-        echo "$command - $this->startDirectory - $this->programNameMachine\n" ;
         echo $fullCommand."\n" ;
         self::executeAndOutput($fullCommand);
     }
