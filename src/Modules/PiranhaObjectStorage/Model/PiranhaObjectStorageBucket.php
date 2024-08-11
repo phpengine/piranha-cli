@@ -161,6 +161,10 @@ class PiranhaObjectStorageBucket extends BasePiranhaObjectStorageAllOS {
             $this->params["bucket-name"] = $this->params["name"] ;
             return ;
         }
+        if (isset($this->params["bucket"])) {
+            $this->params["bucket-name"] = $this->params["bucket"] ;
+            return ;
+        }
         $question = 'Enter bucket name: ';
         $this->params["bucket-name"]= self::askForInput($question, true);
     }
