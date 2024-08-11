@@ -270,7 +270,8 @@ COMPLETION;
     }
 
     private function populateStartDirectory() {
-        $this->startDirectory = str_replace(DS."$this->programNameMachine", "", dirname(__FILE__));
+//        $this->startDirectory = str_replace(DS."$this->programNameMachine", "", dirname(__FILE__));
+        $this->startDirectory = dirname(__FILE__) ;
     }
 
     private function winCloseAndCompleteInNewWindow() {
