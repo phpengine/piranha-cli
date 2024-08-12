@@ -303,7 +303,7 @@ class PiranhaBaseLibs extends Base {
 //            $data .= "Content-Type: image/jpeg\n";
         $data .= "Content-Transfer-Encoding: binary\n\n";
 
-        var_dump($data);
+//        var_dump($data);
 
         $data .= $fileContents."\n";
         $data .= "--$boundary--\n";

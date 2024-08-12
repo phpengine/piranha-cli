@@ -79,7 +79,7 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
 
     protected function loopUpload($file, $p_api_vars, $original_dir='', $key_dir='') {
         if (is_dir($file)) {
-            var_dump("dir $file...");
+//            var_dump("dir $file...");
             $source_dir = $file ;
             $all_files = scandir($source_dir) ;
             $all_files = array_diff($all_files, array('.', '..')) ;
@@ -87,7 +87,7 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
                 $this->loopUpload($source_dir.DS.$file, $p_api_vars, $original_dir, $key_dir);
             }
         } else {
-            var_dump("file lup $original_dir - $key_dir - $file...") ;
+//            var_dump("file lup $original_dir - $key_dir - $file...") ;
             $this->singleObjectUpload($file, $p_api_vars, $original_dir, $key_dir) ;
         }
     }
@@ -100,9 +100,10 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
             $logging = $loggingFactory->getModel($this->params);
 //            $logging->log("Finding Bucket {$this->params["bucket-name"]}", $this->getModuleName());
 
-            $p_api_vars['object_name'] = str_replace($original_dir.DS, '', $single_file) ;
-            var_dump("sup 1 -- " . $single_file);
-            var_dump("sup 2 -- " . $p_api_vars['object_name']);
+            $object_name_without_original_dir =  str_replace($original_dir.DS, '', $single_file) ;
+            $p_api_vars['object_name'] = $object_name_without_original_dir ;
+//            var_dump("sup 1 -- " . $single_file);
+//            var_dump("sup 2 -- " . $p_api_vars['object_name']);
 //            var_dump($this->params["file-name"]);
 //            die() ;
             $result = $this->performRequest($p_api_vars, false, null, $single_file);
@@ -114,12 +115,12 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
                 $logging->log("Error is : {$result['error']}", $this->getModuleName());
             }
 
-            $logging->log("Looking for uploaded file ".basename($single_file), $this->getModuleName());
-            $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], basename($single_file)) ;
+            $logging->log("Looking for uploaded file ".$object_name_without_original_dir, $this->getModuleName());
+            $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], $object_name_without_original_dir) ;
             if ($remoteFileExists === false) {
-                $logging->log("File ".basename($single_file)." in Bucket {$this->params["bucket-name"]} not found, upload failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+                $logging->log("File ".$object_name_without_original_dir." in Bucket {$this->params["bucket-name"]} not found, upload failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
             } else {
-                $logging->log("File ".basename($single_file)." in Bucket {$this->params["bucket-name"]} exists, upload confirmed", $this->getModuleName());
+                $logging->log("File ".$object_name_without_original_dir." in Bucket {$this->params["bucket-name"]} exists, upload confirmed", $this->getModuleName());
             }
 
         } catch (\Exception $e) {
@@ -198,11 +199,6 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
     }
 
     protected function doesRemoteFileExist($bucket, $path) {
-        $p_api_vars['api_uri'] = '/api/ss3/object/all';
-        $p_api_vars['page'] = 'all' ;
-        $p_api_vars['bucket_name'] = $bucket ;
-        $p_api_vars['key'] = '' ;
-        $p_api_vars['page'] = 'all' ;
 
         $file = basename($path) ;
         $key = dirname($path) ;
@@ -210,16 +206,81 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
         if ($key !== '.') {
             $p_api_vars['key'] = $key ;
         }
-        $list = $this->performRequest($p_api_vars);
-//        var_dump('doesBucketExist list');
+
+        $list = $this->getRecursiveDirectoryListing($bucket);
+
+//        $objects = array_column($list['objects'], 'name') ;
+//        var_dump('doesRemoteFileExist list');
 //        var_dump($list);
-        $found = false ;
-        foreach ($list['objects'] as $object) {
-            if ($object['name'] === $file) {
-                return true ;
+//        $found = false ;
+
+        if (in_array($path, $list)) {
+            return true ;
+        }
+//        if (substr($path, -1, 1) === '/') {
+//            foreach ($list as $object) {
+//                if (strpos($object, $file) === 0) {
+//                    return true ;
+//                }
+//            }
+//        } else {
+//            foreach ($list as $object) {
+//                if ($object === $file) {
+//                    return true ;
+//                }
+//            }
+//        }
+        return false ;
+    }
+
+    protected function getRecursiveDirectoryListing($bucket) {
+        $p_api_vars['api_uri'] = '/api/ss3/object/all';
+        $p_api_vars['page'] = 'all' ;
+        $p_api_vars['bucket_name'] = $bucket ;
+        $p_api_vars['key'] = '' ;
+
+        $list = $this->performRequest($p_api_vars);
+
+        foreach ($list['objects'] as $list_object) {
+            if ($list_object['type'] === 'directory') {
+                $lines = array_merge($lines, $this->getDirectoryListByKey($bucket, $list_object['name']) );
+            } else {
+                $lines[] = $list_object['name'] ;
             }
         }
-        return false ;
+//        var_dump('doesRemoteFileExist last list');
+//        var_dump($lines);
+
+        return $lines ;
+    }
+
+    protected function getDirectoryListByKey($bucket, $key) {
+//        echo "getDirectoryListByKey $key\n" ;
+        $p_api_vars['api_uri'] = '/api/ss3/object/all';
+        $p_api_vars['page'] = 'all' ;
+        $p_api_vars['bucket_name'] = $bucket ;
+        $p_api_vars['key'] = $key ;
+
+        $list = $this->performRequest($p_api_vars);
+
+//        var_dump('getDirectoryListByKey list: '.$key);
+//        var_dump($list);
+
+        $lines = [] ;
+        foreach ($list['objects'] as $list_object) {
+//            echo $list_object['name']."\n" ;
+            if ($list_object['type'] === 'directory') {
+                $new_lines = $this->getDirectoryListByKey($bucket, $key.$list_object['name']) ;
+//                foreach ($new_lines as $line) {
+//                    echo $line."\n" ;
+//                }
+                $lines = array_merge($lines, $new_lines);
+            } else {
+                $lines[] = $key.$list_object['name'] ;
+            }
+        }
+
+        return $lines ;
     }
 
 
@@ -230,7 +291,6 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
         $this->initialisePiranha();
         $this->getBucketName();
         $this->getFileName();
-        $unique= md5(uniqid(rand(), true));
         $result = null ;
         try{
 
@@ -254,7 +314,6 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
 
             if ($p_api_vars['object_id'] === '*') {
 
-
                 $listingModel = \Model\SystemDetectionFactory::getCompatibleModel("PiranhaObjectStorage", "Listing", $this->params);
 
 //                $base_ctl = new \Controller\Base() ;
@@ -263,18 +322,18 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
                 $all_files_array = $listingModel->getDataListFromPiranhaObjectStorage('file') ;
 
                 $all_files = array_column($all_files_array['data']['objects'], 'key') ;
+
 //                var_dump($all_files);
 //                die() ;
-
-//                    $source_dir = dirname($this->params["file-name"]) ;
-//                    $all_files = scandir($source_dir) ;
-//                    $all_files = array_diff($all_files, array('.', '..')) ;
+//                $source_dir = dirname($this->params["file-name"]) ;
+//                $all_files = scandir($source_dir) ;
+//                $all_files = array_diff($all_files, array('.', '..')) ;
 
                 foreach ($all_files as $file) {
                     $this->loopDelete($file, $p_api_vars);
                 }
             } else {
-                $this->singleObjectDelete($p_api_vars['object_name'], $p_api_vars) ;
+                $this->singleObjectDelete($p_api_vars['object_id'], $p_api_vars) ;
             }
 
         } catch(\Exception $e) {
@@ -303,6 +362,11 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
 //            $logging->log("Finding Bucket {$this->params["bucket-name"]}", $this->getModuleName());
 
             $p_api_vars['object_name'] = $single_file ;
+//            $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], basename($single_file)) ;
+//            if ($remoteFileExists === false) {
+//                $logging->log("File $single_file not found}", $this->getModuleName());
+//                return false ;
+//            }
 //            var_dump($p_api_vars['object_name']);
 //            var_dump($this->params["file-name"]);
 //            die() ;
