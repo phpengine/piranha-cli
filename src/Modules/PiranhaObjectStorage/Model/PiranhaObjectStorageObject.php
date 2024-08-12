@@ -51,7 +51,10 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
                 $logging->log("Bucket {$this->params["bucket-name"]} Found, uploading {$this->params["file-name"]} to it...", $this->getModuleName());
                 $p_api_vars['api_uri'] = '/api/ss3/object/create';
                 $p_api_vars['region'] = 'dc' ;
-                $p_api_vars['path'] = $this->params["path"] ;
+                $p_api_vars['path'] = '' ;
+                if (isset($this->params["path"])) {
+                    $p_api_vars['path'] = $this->params["path"] ;
+                }
                 $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
                 $p_api_vars['object_name'] = basename($this->params["file-name"]) ;
 
@@ -241,6 +244,7 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
 
         $list = $this->performRequest($p_api_vars);
 
+        $lines = [] ;
         foreach ($list['objects'] as $list_object) {
             if ($list_object['type'] === 'directory') {
                 $lines = array_merge($lines, $this->getDirectoryListByKey($bucket, $list_object['name']) );
