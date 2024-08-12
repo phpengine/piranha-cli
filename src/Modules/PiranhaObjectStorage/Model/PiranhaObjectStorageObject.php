@@ -118,14 +118,16 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
                 $logging->log("Error is : {$result['error']}", $this->getModuleName());
             }
 
-            $logging->log("Looking for uploaded file ".$object_name_without_original_dir, $this->getModuleName());
-            $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], $object_name_without_original_dir) ;
-            if ($remoteFileExists === false) {
-                $logging->log("File ".$object_name_without_original_dir." in Bucket {$this->params["bucket-name"]} not found, upload failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
-            } else {
-                $logging->log("File ".$object_name_without_original_dir." in Bucket {$this->params["bucket-name"]} exists, upload confirmed", $this->getModuleName());
+            if (isset($this->params['verify'])) {
+                $logging->log("Looking for uploaded file ".$object_name_without_original_dir, $this->getModuleName());
+                $remoteFileExists = $this->doesRemoteFileExist($this->params["bucket-name"], $object_name_without_original_dir) ;
+                if ($remoteFileExists === false) {
+                    $logging->log("File ".$object_name_without_original_dir." in Bucket {$this->params["bucket-name"]} not found, upload failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+                } else {
+                    $logging->log("File ".$object_name_without_original_dir." in Bucket {$this->params["bucket-name"]} exists, upload confirmed", $this->getModuleName());
+                }
             }
-
+            
         } catch (\Exception $e) {
             echo $e->getMessage();
         }
