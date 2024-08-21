@@ -141,11 +141,11 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
 
     protected function performPiranhaObjectStorageDownloadObject($params=null){
         if ($this->askForAddExecute() != true) { return false; }
-        $this->initialisePiranha();
-        $this->getBucketName();
-        $this->getFileName();
-        $this->getFileDestination();
-        $unique= md5(uniqid(rand(), true));
+        $this->initialisePiranha() ;
+        $this->getRemotePath() ;
+        $this->getBucketName() ;
+        $this->getFileName() ;
+        $this->getFileDestination() ;
 
         try {
 
@@ -163,21 +163,72 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
                 $p_api_vars['api_uri'] = '/api/ss3/object/download';
                 $p_api_vars['region'] = 'dc' ;
                 $p_api_vars['bucket_name'] = $this->params["bucket-name"] ;
-                $p_api_vars['object_key'] = $this->params["file-name"] ;
-                $p_api_vars['object_id'] = $this->params["bucket-name"].'/'.$this->params["file-name"] ;
-                $logging->log("Downloading {$p_api_vars['object_id']}...", $this->getModuleName());
-                $this->performRequest($p_api_vars, true, $this->params["destination"]);
+                $p_api_vars['object_key'] = '' ;
+                if (isset($this->params['key'])) {
+                    $p_api_vars['object_key'] = $this->params["key"] ;
+                }
+                $p_api_vars['destination'] = $this->params["destination"] ;
+                $p_api_vars['object_name'] = basename($this->params["file-name"]) ;
+//                $p_api_vars['object_id'] = $this->params["bucket-name"].'/'.$p_api_vars['object_key'].$this->params["file-name"] ;
+                $p_api_vars['object_id'] = $p_api_vars['object_key'].$this->params["file-name"] ;
 
-//                var_dump($result);
-
-                $logging->log("Looking for downloaded file {$this->params["destination"]}", $this->getModuleName());
-                $fileExists = file_exists($this->params["destination"]) ;
-                if ($fileExists === true) {
-                    $logging->log("Found File {$this->params["bucket-name"]}, creation confirmed ", $this->getModuleName());
+                if ($p_api_vars['object_name'] === '*') {
+                    $all_files = $this->getDirectoryListByKey($p_api_vars['bucket_name'], $p_api_vars['object_key']) ;
+                    foreach ($all_files as $file) {
+                        if (strlen($p_api_vars['object_key']) > 0 &&
+                            strpos($file, $p_api_vars['object_key']) === 0) {
+                            $file = substr($file, strlen($p_api_vars['object_key'])) ;
+                        }
+//                        var_dump('$file');
+//                        var_dump($file);
+                        $this->loopDownload($file, $p_api_vars, $p_api_vars['destination']);
+                    }
                 } else {
-                    $logging->log("Unable to find File {$this->params["bucket-name"]}, creation failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+                    $this->singleObjectDownload($p_api_vars['object_name'], $p_api_vars, $p_api_vars['destination'].$p_api_vars['object_name']);
                 }
 
+            }
+
+        } catch (\Exception $e) {
+            echo $e->getMessage();
+        }
+
+        return true ;
+
+    }
+
+    protected function loopDownload($file, $p_api_vars, $destination_dir='') {
+        $p_api_vars['object_key'] = $p_api_vars['object_key'].$file ;
+        $this->singleObjectDownload(basename($file), $p_api_vars, $destination_dir.$file) ;
+    }
+
+    protected function singleObjectDownload($single_file, $p_api_vars, $destination_file) {
+
+        try {
+
+            $loggingFactory = new \Model\Logging();
+            $logging = $loggingFactory->getModel($this->params);
+
+//            var_dump('$single_file');
+//            var_dump($single_file);
+
+            $result = $this->performRequest($p_api_vars, true, $destination_file);
+
+            $logging->log("Download Status is : {$result['status']}", $this->getModuleName());
+            if ($result['status'] === 'OK') {
+                $logging->log("Downloaded File name is : {$result['name']}", $this->getModuleName());
+            } else if (isset($result['error'])) {
+                $logging->log("Error is : {$result['error']}", $this->getModuleName());
+            }
+
+            if (isset($this->params['verify'])) {
+                $logging->log("Looking for downloaded file ".$destination_file, $this->getModuleName());
+                $localFileExists = file_exists($destination_file) ;
+                if ($localFileExists === false) {
+                    $logging->log("File ".$destination_file." not found, download failed ", $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+                } else {
+                    $logging->log("File ".$destination_file." exists, download confirmed", $this->getModuleName());
+                }
             }
 
         } catch (\Exception $e) {
@@ -194,7 +245,6 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
         $list = $this->performRequest($p_api_vars);
 //        var_dump('doesBucketExist list');
 //        var_dump($list);
-        $found = false ;
         foreach ($list['buckets'] as $bucket) {
             if ($bucket['name'] === $this->params["bucket-name"]) {
                 return true ;
@@ -212,33 +262,15 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
             $p_api_vars['key'] = $key ;
         }
 
-        $list = $this->getRecursiveDirectoryListing($bucket);
-
-//        $objects = array_column($list['objects'], 'name') ;
-//        var_dump('doesRemoteFileExist list');
-//        var_dump($list);
-//        $found = false ;
+        $list = $this->getRecursiveBucketListing($bucket);
 
         if (in_array($path, $list)) {
             return true ;
         }
-//        if (substr($path, -1, 1) === '/') {
-//            foreach ($list as $object) {
-//                if (strpos($object, $file) === 0) {
-//                    return true ;
-//                }
-//            }
-//        } else {
-//            foreach ($list as $object) {
-//                if ($object === $file) {
-//                    return true ;
-//                }
-//            }
-//        }
         return false ;
     }
 
-    protected function getRecursiveDirectoryListing($bucket) {
+    protected function getRecursiveBucketListing($bucket) {
         $p_api_vars['api_uri'] = '/api/ss3/object/all';
         $p_api_vars['page'] = 'all' ;
         $p_api_vars['bucket_name'] = $bucket ;
@@ -256,7 +288,6 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
         }
 //        var_dump('doesRemoteFileExist last list');
 //        var_dump($lines);
-
         return $lines ;
     }
 
@@ -446,22 +477,23 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
             $this->params["destination"] = $this->params["path"] ;
             return ;
         }
+        if (isset($this->params["guess"])) {
+            $this->params["destination"] = getcwd().'/' ;
+            return ;
+        }
         $question = 'Enter file destination: ';
         $this->params["destination"]= self::askForInput($question, true);
     }
 
-    protected function getBucketDescription() {
-        if (isset($this->params["bucket-description"])) { return ; }
-        if (isset($this->params["description"])) {
-            $this->params["bucket-description"] = $this->params["description"] ;
+    protected function getRemotePath()
+    {
+        if (isset($this->params["key"])) { return ; }
+        if (isset($this->params["guess"])) {
+            $this->params["key"] = '' ;
             return ;
         }
-        if (isset($this->params["guess"])) {
-            $this->params["bucket-description"] = '' ;
-            return ; }
-        $question = 'Enter an optional Bucket Description';
-        $this->params["bucket-description"] = self::askForInput($question, true);
+        $question = 'Enter remote path: ';
+        $this->params["key"]= self::askForInput($question, true);
     }
-
 
 }

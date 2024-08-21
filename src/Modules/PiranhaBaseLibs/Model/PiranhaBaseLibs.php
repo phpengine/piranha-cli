@@ -218,6 +218,10 @@ class PiranhaBaseLibs extends Base {
 
         if ($save_output === true) {
 
+            if (!is_dir(dirname($destination))) {
+                mkdir(dirname($destination), 0777, true);
+            }
+
             $fp = fopen ($destination, 'w+');
             curl_setopt_array($curl, [
                 CURLOPT_URL => $server_url.'/'.$request_vars['api_uri'] ,
@@ -226,6 +230,16 @@ class PiranhaBaseLibs extends Base {
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_FILE => $fp
             ]);
+            $curl_result = curl_exec($curl);
+            if ($curl_result === true) {
+                $new_result['status'] = 'OK' ;
+                $new_result['name'] = $destination ;
+            } else {
+                $new_result['status'] = 'FAIL' ;
+                $new_result['error'] = 'Download Failed' ;
+            }
+            fclose($fp) ;
+            return $new_result ;
 
         } else if (is_null($upload_file)){
 
@@ -250,11 +264,12 @@ class PiranhaBaseLibs extends Base {
             return $noncurl_result_json ;
         }
 
+
         $curl_result = curl_exec($curl);
 
-        if ($save_output === true) {
-            fclose($fp) ;
-        }
+//        var_dump('$curl_result');
+//        var_dump($curl_result);
+
         if (curl_errno($curl)) {
             $error_msg = curl_error($curl);
             $logging->log("Request Failed - $error_msg",
@@ -270,6 +285,7 @@ class PiranhaBaseLibs extends Base {
             return ['status' => 'error' , 'message' => $error_msg];
         }
         $curl_result_json = json_decode($curl_result, true) ;
+//        var_dump('$curl_result_json');
 //        var_dump($curl_result_json);
         return $curl_result_json ;
     }
