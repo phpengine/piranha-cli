@@ -2,7 +2,7 @@
 
 Namespace Model;
 
-class PiranhaVPCDomain extends BasePiranhaVPCAllOS {
+class PiranhaSLBDomain extends BasePiranhaVPCAllOS {
 
     // Compatibility
     public $os = array("any") ;

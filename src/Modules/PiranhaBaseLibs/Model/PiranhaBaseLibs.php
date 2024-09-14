@@ -223,6 +223,7 @@ class PiranhaBaseLibs extends Base {
             }
 
             $fp = fopen ($destination, 'w+');
+//            error_log($server_url.'/'.$request_vars['api_uri']) ;
             curl_setopt_array($curl, [
                 CURLOPT_URL => $server_url.'/'.$request_vars['api_uri'] ,
                 CURLOPT_POSTFIELDS => http_build_query($post_data),

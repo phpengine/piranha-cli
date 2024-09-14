@@ -14,6 +14,9 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
     // Model Group
     public $modelGroup = array("Object");
 
+    protected $fileCountTotal = 0;
+    protected $fileCountComplete = 0;
+
     public function askWhetherToUploadObject($params=null) {
         return $this->performPiranhaObjectStorageUploadObject($params);
     }
@@ -174,6 +177,7 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
 
                 if ($p_api_vars['object_name'] === '*') {
                     $all_files = $this->getDirectoryListByKey($p_api_vars['bucket_name'], $p_api_vars['object_key']) ;
+                    $this->fileCountTotal = count($all_files) ;
                     foreach ($all_files as $file) {
                         if (strlen($p_api_vars['object_key']) > 0 &&
                             strpos($file, $p_api_vars['object_key']) === 0) {
@@ -182,8 +186,10 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
 //                        var_dump('$file');
 //                        var_dump($file);
                         $this->loopDownload($file, $p_api_vars, $p_api_vars['destination']);
+                        $this->fileCountComplete++ ;
                     }
                 } else {
+                    $p_api_vars['object_key'] = $p_api_vars['object_key'].$p_api_vars['object_name'] ;
                     $this->singleObjectDownload($p_api_vars['object_name'], $p_api_vars, $p_api_vars['destination'].$p_api_vars['object_name']);
                 }
 
@@ -208,13 +214,18 @@ class PiranhaObjectStorageObject extends BasePiranhaObjectStorageAllOS {
 
             $loggingFactory = new \Model\Logging();
             $logging = $loggingFactory->getModel($this->params);
-
-//            var_dump('$single_file');
-//            var_dump($single_file);
+//            var_dump('$p_api_vars');
+//            var_dump($p_api_vars);
+//            var_dump('$destination_file');
+//            var_dump($destination_file);
 
             $result = $this->performRequest($p_api_vars, true, $destination_file);
 
-            $logging->log("Download Status is : {$result['status']}", $this->getModuleName());
+            $fileCountString = "" ;
+            if ($this->fileCountTotal > 0) {
+                $fileCountString = "$($this->fileCountComplete/$this->fileCountTotal)" ;
+            }
+            $logging->log("Download Status is : {$result['status']} $fileCountString", $this->getModuleName());
             if ($result['status'] === 'OK') {
                 $logging->log("Downloaded File name is : {$result['name']}", $this->getModuleName());
             } else if (isset($result['error'])) {

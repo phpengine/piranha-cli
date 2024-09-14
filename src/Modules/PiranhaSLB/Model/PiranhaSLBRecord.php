@@ -2,7 +2,7 @@
 
 Namespace Model;
 
-class PiranhaVPCRecord extends BasePiranhaVPCAllOS {
+class PiranhaSLBRecord extends BasePiranhaSLBAllOS {
 
     // Compatibility
     public $os = array("any") ;
@@ -59,6 +59,9 @@ class PiranhaVPCRecord extends BasePiranhaVPCAllOS {
 
 //        echo "Before Result\n\n" ;
 //
+        if ($result['status'] !== 'OK') {
+            $logging->log($result['message'], $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+        }
 //        var_dump($result);
 //
 //        echo "After Result\n\n" ;
@@ -83,6 +86,9 @@ class PiranhaVPCRecord extends BasePiranhaVPCAllOS {
 
 //        echo "Before Result\n\n" ;
 //
+        if ($result['status'] !== 'OK') {
+            $logging->log($result['message'], $this->getModuleName(), LOG_FAILURE_EXIT_CODE);
+        }
 //        var_dump($result);
 //
 //        echo "After Result\n\n" ;
